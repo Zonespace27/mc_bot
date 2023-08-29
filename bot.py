@@ -2,6 +2,7 @@ import requests
 import discord
 from discord.ext import commands
 import json
+import re
 
 token: str = ""
 
@@ -35,6 +36,30 @@ async def playercount(context, *args):
         await context.send(embed = new_embed)
     except:
         await context.channel.send("An error has occured. Try again later.")
+
+@bot.command(
+    brief = "Shows a list of valid config options to modify.",
+    help = "Displays every config option to modify, and its current state."
+)
+@commands.has_role('Sysops')
+async def config_options(context, *args):
+    properties_file = open("/opt/minecraft/server.properties", "r")
+    return_string: str = ""
+    for line in properties_file.readlines():
+        if line.startswith("#"): # comment
+            continue
+        
+        equal_search = re.search(r"([a-z-.]+)=([a-z0-9 A-Z-\\{}]+)", line)
+        groups = equal_search.groups()
+        if len(groups) == 1:
+            return_string += "**" + equal_search.group(1) + "**: **no value**"
+
+        elif len(groups) == 2:
+            return_string += "**" + equal_search.group(1) + "**: **" + equal_search.group(2) + "**"
+
+    new_embed = discord.Embed(title = "Config List", description = return_string, color = discord.Colour.from_rgb(6, 4, 54))
+    await context.send(embed = new_embed)
+
 
 if __name__ == "__main__":
     bot.run(token)
