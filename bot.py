@@ -4,6 +4,8 @@ from discord.ext import commands
 import json
 import re
 import platform
+import subprocess
+from time import sleep
 
 token: str = ""
 
@@ -29,7 +31,12 @@ async def playercount(context, *args):
     try:
         foo = requests.get("https://mcapi.us/server/status?ip=146.190.59.241&port=21030")
         json_data = json.loads(foo.content)
-        desc = "**" + str(json_data["players"]["now"]) + "** player" + ("s" if json_data["players"]["now"] > 1 else "") + "\n\n"
+        if json_data["error"] == "protocol error: io error: Connection refused (os error 111)":
+            new_embed = discord.Embed(title = "Player Count", description = "The server is currently down. Please try again later.", color = discord.Colour.from_rgb(12, 110, 48))
+            await context.send(embed = new_embed)
+            return
+
+        desc = "**" + str(json_data["players"]["now"]) + "** player" + ("" if json_data["players"]["now"] == 1 else "s") + "\n\n"
         for player in json_data["players"]["sample"]:
             desc += "**" + player["name"] + "**" + "\n"
 
@@ -79,7 +86,7 @@ async def config_options(context, *args):
 @commands.has_role('Sysops')
 async def config_set(context, *args):
     if len(args) < 2:
-        new_embed = discord.Embed(title = "Config Set", description = "Two arguments required for configuration setting.", color = discord.Colour.from_rgb(6, 4, 54))
+        new_embed = discord.Embed(title = "Config Set Failed", description = "Two arguments required for configuration setting.", color = discord.Colour.from_rgb(6, 4, 54))
         await context.send(embed = new_embed)
         return
 
@@ -93,7 +100,6 @@ async def config_set(context, *args):
         if line.startswith("#"): # comment
             continue
         
-        #if line.find(args[0]):
         if re.search(args[0], line):
             list_index = return_list.index(line)
             return_list.remove(line)
@@ -113,6 +119,25 @@ async def config_set(context, *args):
     properties_file.close()
 
     new_embed = discord.Embed(title = "Config Set", description = f"Configuration {args[1]} not found.", color = discord.Colour.from_rgb(6, 4, 54))
+    await context.send(embed = new_embed)
+
+@bot.command(
+    brief = "Reboot the server.",
+    help = "Kill the server process before rebooting it. Reboot takes 1-2 minutes."
+)
+@commands.has_role('Sysops')
+async def reboot(context, *args):
+    if not(platform.system() == "Linux"):
+        new_embed = discord.Embed(title = "Restart Failed", description = "Cannot restart server.", color = discord.Colour.from_rgb(7, 102, 42))
+        await context.send(embed = new_embed)
+        return # CBA to write shell commands for windows rn
+
+    subprocess.call("killall -9 java", shell=True)
+    sleep(1.5) # Give it some time to gracefully exit
+    subprocess.call("cd /opt/minecraft", shell=True)
+    subprocess.call("./run.sh", shell=True)
+
+    new_embed = discord.Embed(title = "Restarted", description = "Server is now rebooting.", color = discord.Colour.from_rgb(7, 102, 42))
     await context.send(embed = new_embed)
 
 if __name__ == "__main__":
