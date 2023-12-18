@@ -5,6 +5,7 @@ import json
 import re
 import platform
 import subprocess
+import os
 from time import sleep
 
 token: str = ""
@@ -29,7 +30,7 @@ async def on_ready():
 )
 async def playercount(context, *args):
     try:
-        foo = requests.get("https://mcapi.us/server/status?ip=146.190.59.241&port=21030")
+        foo = requests.get("https://mcapi.us/server/status?ip=68.5.1.206&port=25564")
         json_data = json.loads(foo.content)
         if json_data["error"] == "protocol error: io error: Connection refused (os error 111)":
             new_embed = discord.Embed(title = "Player Count", description = "The server is currently down. Please try again later.", color = discord.Colour.from_rgb(12, 110, 48))
@@ -54,7 +55,7 @@ async def config_options(context, *args):
     if platform.system() == "Linux":
         properties_file = open("/opt/minecraft/server.properties", "r")
     else:
-        properties_file = open("opt/minecraft/server.properties", "r")
+        properties_file = open("../mc_main_server/server.properties", "r")
     return_string: str = ""
     for line in properties_file.readlines():
         if line.startswith("#"): # comment
@@ -93,7 +94,7 @@ async def config_set(context, *args):
     if platform.system() == "Linux":
         properties_file = open("/opt/minecraft/server.properties", "r+")
     else:
-        properties_file = open("opt/minecraft/server.properties", "r+")
+        properties_file = open("../mc_main_server/server.properties", "r+")
     return_list: list[str] = properties_file.readlines()
     found = False
     for line in return_list:
@@ -123,22 +124,27 @@ async def config_set(context, *args):
 
 @bot.command(
     brief = "Reboot the server.",
-    help = "Kill the server process before rebooting it. Reboot takes 1-2 minutes."
+    help = "Kill the server process before rebooting it. Reboot takes several minutes."
 )
 @commands.has_role('Sysops')
 async def reboot(context, *args):
-    if not(platform.system() == "Linux"):
-        new_embed = discord.Embed(title = "Restart Failed", description = "Cannot restart server.", color = discord.Colour.from_rgb(7, 102, 42))
-        await context.send(embed = new_embed)
-        return # CBA to write shell commands for windows rn
+    new_embed = discord.Embed(title = "Error", description = "This is currently not implemented for Windows servers.", color = discord.Colour.from_rgb(7, 102, 42))
+    await context.send(embed = new_embed)
 
-    subprocess.call("killall -9 java", shell=True)
-    sleep(1.5) # Give it some time to gracefully exit
-    subprocess.call("cd /opt/minecraft", shell=True)
-    subprocess.call("./run.sh", shell=True)
+    """
+       if platform.system() == "Linux":
+        subprocess.call("killall -9 java", shell=True)
+        sleep(1.5) # Give it some time to gracefully exit
+        subprocess.call("cd /opt/minecraft", shell=True)
+        subprocess.call("./run.sh", shell=True)
+    
+    else:
+        os.system()
 
     new_embed = discord.Embed(title = "Restarted", description = "Server is now rebooting.", color = discord.Colour.from_rgb(7, 102, 42))
     await context.send(embed = new_embed)
+    """
+ 
 
 if __name__ == "__main__":
     bot.run(token)
